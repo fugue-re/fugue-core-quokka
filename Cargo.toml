@@ -1,0 +1,22 @@
+[package]
+name = "fugue-core-quokka"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "fugue2quokka"
+path = "bin/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+fugue-core = { git = "https://github.com/fugue-re/fugue-core-next", branch = "dev" }
+prost = "0.14"
+thiserror = "2"
+xz2 = "0.1"
+
+[build-dependencies]
+prost-build = "0.14"
+
+[dev-dependencies]
+fugue-core = { git = "https://github.com/fugue-re/fugue-core-next", branch = "dev", features = ["static-lifters"] }
