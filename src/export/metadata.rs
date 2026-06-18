@@ -1,6 +1,5 @@
 use fugue_core::ir::Endian;
 use fugue_core::project::Project;
-use fugue_core::storage::ProjectStorageProvider;
 
 use crate::options::ExportOptions;
 use crate::proto::quokka;
@@ -15,10 +14,7 @@ impl MetadataExporter {
         }
     }
 
-    pub(crate) fn meta<S>(project: &Project<S>, options: &ExportOptions) -> quokka::Meta
-    where
-        S: ProjectStorageProvider,
-    {
+    pub(crate) fn meta(project: &Project, options: &ExportOptions) -> quokka::Meta {
         quokka::Meta {
             executable_name: options.executable_name().to_owned(),
             isa: Self::isa(project) as i32,
@@ -37,10 +33,7 @@ impl MetadataExporter {
         }
     }
 
-    pub(crate) fn address_size<S>(project: &Project<S>) -> quokka::AddressSize
-    where
-        S: ProjectStorageProvider,
-    {
+    pub(crate) fn address_size(project: &Project) -> quokka::AddressSize {
         match project.language().address_bits() {
             32 => quokka::AddressSize::Addr32,
             64 => quokka::AddressSize::Addr64,
@@ -48,10 +41,7 @@ impl MetadataExporter {
         }
     }
 
-    fn isa<S>(project: &Project<S>) -> quokka::meta::Isa
-    where
-        S: ProjectStorageProvider,
-    {
+    fn isa(project: &Project) -> quokka::meta::Isa {
         match project.language().processor() {
             "x86" => quokka::meta::Isa::ProcIntel,
             "ARM" | "AARCH64" => quokka::meta::Isa::ProcArm,
@@ -60,10 +50,7 @@ impl MetadataExporter {
         }
     }
 
-    fn endianess<S>(project: &Project<S>) -> quokka::meta::Endianess
-    where
-        S: ProjectStorageProvider,
-    {
+    fn endianess(project: &Project) -> quokka::meta::Endianess {
         match project.arch().endian() {
             Endian::Little => quokka::meta::Endianess::EndLe,
             Endian::Big => quokka::meta::Endianess::EndBe,

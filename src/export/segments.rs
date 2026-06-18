@@ -1,6 +1,5 @@
 use fugue_core::ir::{Address, SegmentProperties};
 use fugue_core::project::Project;
-use fugue_core::storage::ProjectStorageProvider;
 
 use crate::error::QuokkaBuilderError;
 use crate::export::metadata::MetadataExporter;
@@ -16,15 +15,12 @@ impl SegmentIndex {
         Self { segments }
     }
 
-    pub(crate) fn resolve<S>(
+    pub(crate) fn resolve(
         &self,
-        project: &Project<S>,
+        project: &Project,
         address: Address,
         missing: MissingAddressPolicy,
-    ) -> Result<ResolvedAddress, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<ResolvedAddress, QuokkaBuilderError> {
         let Some(segment) = self
             .segments
             .iter()
@@ -117,13 +113,10 @@ impl ResolvedAddress {
 pub(crate) struct SegmentExporter;
 
 impl SegmentExporter {
-    pub(crate) fn populate<S>(
-        project: &Project<S>,
+    pub(crate) fn populate(
+        project: &Project,
         quokka: &mut proto::Quokka,
-    ) -> Result<SegmentIndex, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<SegmentIndex, QuokkaBuilderError> {
         let mut views = Vec::new();
 
         for space in project.segments().spaces() {
