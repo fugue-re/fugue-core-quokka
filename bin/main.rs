@@ -7,7 +7,7 @@ use clap::builder::NonEmptyStringValueParser;
 use fugue_core::analysis::AnalysisPass;
 use fugue_core::ir::RawAddress;
 use fugue_core::loader::{Loadable, LoadableAnalysers, Loader};
-use fugue_core::project::InMemoryProject;
+use fugue_core::project::Project;
 use fugue_core_quokka::{ExportOptions, QuokkaBuilder};
 
 #[derive(Parser)]
@@ -69,7 +69,7 @@ impl Cli {
 
     fn run(&self) -> Result<()> {
         let loader = Loader::from_file(&self.input)?;
-        let mut project = InMemoryProject::new(&loader)?;
+        let mut project = Project::new_transient(&loader)?;
 
         if self.recover_functions || !self.function_candidates.is_empty() {
             let mut recovery = loader.analysers().function_recovery()?;

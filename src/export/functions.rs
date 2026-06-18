@@ -1,11 +1,7 @@
 use std::collections::BTreeMap;
 
-use fugue_core::ir::traits::{
-    AsCodeBlockRef, AsFunctionRef, CodeBlockTable as _, FunctionTable as _,
-};
 use fugue_core::ir::{Address, CodeBlock, CodeBlockId, Function};
 use fugue_core::project::Project;
-use fugue_core::storage::ProjectStorageProvider;
 
 use crate::error::QuokkaBuilderError;
 use crate::export::segments::{MissingAddressPolicy, SegmentIndex};
@@ -14,16 +10,13 @@ use crate::proto::{self, quokka};
 pub(crate) struct FunctionExporter;
 
 impl FunctionExporter {
-    pub(crate) fn populate<S>(
-        project: &Project<S>,
+    pub(crate) fn populate(
+        project: &Project,
         segments: &SegmentIndex,
         quokka: &mut proto::Quokka,
-    ) -> Result<(), QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<(), QuokkaBuilderError> {
         let mut functions = project.functions().iter().collect::<Vec<_>>();
-        functions.sort_by_key(|function| function.as_ref().entry());
+        functions.sort_by_key(|function| function.entry());
 
         for function in functions {
             quokka
@@ -34,34 +27,24 @@ impl FunctionExporter {
         Ok(())
     }
 
-    fn convert_function<'a, S, F>(
-        project: &'a Project<S>,
+    fn convert_function(
+        project: &Project,
         segments: &SegmentIndex,
-        function: F,
-    ) -> Result<quokka::Function, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-        F: AsFunctionRef<'a>,
-    {
-        let function = function.as_ref();
+        function: &Function,
+    ) -> Result<quokka::Function, QuokkaBuilderError> {
         let location = segments.resolve(project, function.entry(), MissingAddressPolicy::Zero)?;
         let mut blocks = Self::function_blocks(project, function)?;
-        blocks.sort_by_key(|(_, block)| segments.sort_key(block.as_ref().start()));
+        blocks.sort_by_key(|(_, block)| segments.sort_key(block.start()));
 
         let block_indexes = blocks
             .iter()
             .enumerate()
-            .map(|(index, (_, block))| (block.as_ref().id(), index))
+            .map(|(index, (_, block))| (block.id(), index))
             .collect::<BTreeMap<_, _>>();
 
         let mut converted_blocks = Vec::with_capacity(blocks.len());
         for (_, block) in &blocks {
-            converted_blocks.push(Self::convert_block(
-                project,
-                segments,
-                function,
-                block.as_ref(),
-            )?);
+            converted_blocks.push(Self::convert_block(project, segments, function, block)?);
         }
 
         Ok(quokka::Function {
@@ -83,19 +66,10 @@ impl FunctionExporter {
         })
     }
 
-    fn function_blocks<'a, S>(
-        project: &'a Project<S>,
+    fn function_blocks<'a>(
+        project: &'a Project,
         function: &Function,
-    ) -> Result<
-        Vec<(
-            Address,
-            <<S::ProjectStorage as fugue_core::storage::ProjectStorage>::CodeBlockTable as fugue_core::ir::traits::CodeBlockTable>::CodeBlockRef<'a>,
-        )>,
-        QuokkaBuilderError,
-    >
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<Vec<(Address, &'a CodeBlock)>, QuokkaBuilderError> {
         let mut blocks = Vec::new();
 
         for (address, block_id) in function.blocks() {
@@ -111,15 +85,12 @@ impl FunctionExporter {
         Ok(blocks)
     }
 
-    fn convert_block<S>(
-        project: &Project<S>,
+    fn convert_block(
+        project: &Project,
         segments: &SegmentIndex,
         function: &Function,
         block: &CodeBlock,
-    ) -> Result<quokka::Block, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<quokka::Block, QuokkaBuilderError> {
         let location = segments.resolve(project, block.start(), MissingAddressPolicy::Zero)?;
 
         Ok(quokka::Block {
@@ -139,18 +110,14 @@ impl FunctionExporter {
         })
     }
 
-    fn convert_edges<'a, B>(
-        blocks: &[(Address, B)],
+    fn convert_edges(
+        blocks: &[(Address, &CodeBlock)],
         block_indexes: &BTreeMap<CodeBlockId, usize>,
-    ) -> Result<Vec<quokka::function::Edge>, QuokkaBuilderError>
-    where
-        B: AsCodeBlockRef<'a>,
-    {
+    ) -> Result<Vec<quokka::function::Edge>, QuokkaBuilderError> {
         let mut edges = Vec::new();
 
         for (source_index, (_, block)) in blocks.iter().enumerate() {
             let destinations = block
-                .as_ref()
                 .successors()
                 .iter()
                 .filter_map(|successor| block_indexes.get(&successor).copied())

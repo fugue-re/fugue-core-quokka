@@ -3,7 +3,6 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use fugue_core::project::Project;
-use fugue_core::storage::ProjectStorageProvider;
 use prost::Message as _;
 use prost::bytes::BytesMut;
 use xz2::write::XzEncoder;
@@ -21,20 +20,14 @@ pub struct QuokkaBuilder {
 }
 
 impl QuokkaBuilder {
-    pub fn from_project<S>(project: &Project<S>) -> Result<Self, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    pub fn from_project(project: &Project) -> Result<Self, QuokkaBuilderError> {
         Self::from_project_with(project, ExportOptions::default())
     }
 
-    pub fn from_project_with<S>(
-        project: &Project<S>,
+    pub fn from_project_with(
+        project: &Project,
         options: ExportOptions,
-    ) -> Result<Self, QuokkaBuilderError>
-    where
-        S: ProjectStorageProvider,
-    {
+    ) -> Result<Self, QuokkaBuilderError> {
         let mut quokka = proto::Quokka {
             meta: Some(MetadataExporter::meta(project, &options)),
             exporter_meta: Some(MetadataExporter::exporter_meta(&options)),

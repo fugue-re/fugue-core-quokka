@@ -13,20 +13,20 @@ mod tests {
     use std::fs;
     use std::io::Read;
 
-    use fugue_core::ir::traits::{CodeBlockTable as _, FunctionTable as _};
     use fugue_core::ir::{Address, CodeBlock, Function, InsnList};
     use fugue_core::project::Project;
-    use fugue_core::storage::project::DefaultTransientProjectStorageProvider;
     use prost::Message as _;
     use xz2::read::XzDecoder;
 
     use crate::proto::quokka;
     use crate::{DEFAULT_QUOKKA_VERSION, ExportOptions, QuokkaBuilder};
 
-    type TestProject = Project<DefaultTransientProjectStorageProvider>;
+    type TestProject = Project;
 
     fn test_project() -> Result<TestProject, Box<dyn std::error::Error>> {
-        Ok(Project::from_file("../fugue-core/fugue-core/tests/ls.elf")?)
+        Ok(Project::from_file_transient(
+            "../fugue-core/fugue-core/tests/ls.elf",
+        )?)
     }
 
     fn project_with_function() -> Result<TestProject, Box<dyn std::error::Error>> {
@@ -36,16 +36,12 @@ mod tests {
 
         let first = project.blocks_mut().insert(entry, |id, start| {
             CodeBlock::try_new(id, start, 0x10, InsnList::new()).ok_or_else(|| {
-                fugue_core::ir::block::table::IndexedCodeBlockTableError::other_with(
-                    "invalid block",
-                )
+                fugue_core::ir::block::table::CodeBlockTableError::other_with("invalid block")
             })
         })?;
         let second = project.blocks_mut().insert(next, |id, start| {
             CodeBlock::try_new(id, start, 0x10, InsnList::new()).ok_or_else(|| {
-                fugue_core::ir::block::table::IndexedCodeBlockTableError::other_with(
-                    "invalid block",
-                )
+                fugue_core::ir::block::table::CodeBlockTableError::other_with("invalid block")
             })
         })?;
 
